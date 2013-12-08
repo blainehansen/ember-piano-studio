@@ -1,0 +1,28 @@
+creations, Composition and Performances {
+	kickstarters, My Kickstarter Projects;
+	sheetmusic, Download My Compositions;
+	performances, Performance Videos {
+		improvisations, Improvisations;
+		classical, Classical;
+		compositions, Compositions;
+	};
+};
+
+blog, Piano Blog {
+	ideas, Ideas;
+	teaching, The Realities of Teaching;
+	reflections, Reflections on Music;
+};
+
+studio, Local Studio {
+	policy, Studio Policy;
+	contact, Contact Information;
+	biography, About Me;
+	repertoire, Student Repertoire;
+	masterworks, What to Listen to;
+	exercises, Student Exercises;
+};
+
+customers, Please Login {
+	customer, :customer_id, Customer Account;
+};

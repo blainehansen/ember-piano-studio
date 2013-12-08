@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Testing</title>
+</head>
+<body>
+
+	<script type="text/x-handlebars" data-template-name="application">
+		{{#if App.CurrentUser.loggedIn}}
+			{{App.CurrentUser.email}}: <span {{action 'logout'}} >Logout</span>
+		{{/if}}
+
+		{{#link-to 'index'}}Home Page{{/link-to}}
+
+		{{#each App.MenuController}}
+			{{#link-to route}}{{title}}{{/link-to}}<br/>
+		{{/each}}
+
+		{{outlet}}
+
+	</script>
+
+	<script src="js/libs/jquery.js"></script>
+	<script src="js/libs/jquery-migrate-1.2.1.js"></script>
+	<script src="/_couch/_utils/script/jquery.couch.js"></script>
+	<script src="js/libs/handlebars.js"></script>
+	<script src='js/libs/ember.js'></script>
+	<script src='js/libs/ember-data.js'></script>
+	<script src='js/libs/ember-couchdb-kit-0.9/dist/ember-couchdb-kit.js'></script>
+	<script src='js/libs/ember-couchdb-kit-0.9/dist/registry.js'></script>
+	<script src='js/libs/ember-couchdb-kit-0.9/dist/document-adapter.js'></script>
+	<script src='js/libs/ember-couchdb-kit-0.9/dist/attachment-adapter.js'></script>
+	<script src='js/libs/ember-couchdb-kit-0.9/dist/revs-adapter.js'></script>
+	<script src='js/libs/ember-couchdb-kit-0.9/dist/changes-feed.js'></script>
+	<script src='templates/templates.js'></script>
+	<script src='js/app.js'></script>
+	<script src='js/config.js'></script>
+	<script src='js/router.js'></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+App.Config = [{'route': 'index', 'children': [{'route': 'users', 'children': [{'route': 'users.user', 'title': 'Your Account'}], 'title': 'Please Sign In '}], 'title': 'Home Page'}];
