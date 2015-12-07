@@ -15,7 +15,7 @@ Sign in:
 	<label>Password</label>
 	{{input value=passwordInput type="password"}}
 
-	<button type="submit" class="btn" {{bindAttr disabled="isProcessing"}}>Log in!</button>
+	<button type="submit" {{bindAttr disabled="isProcessing"}}>Log in!</button>
 </form>
 
 Or sign up:
@@ -33,5 +33,5 @@ Or sign up:
 	<label>Last Name</label>
 	{{input value=lastName type="text"}}
 
-	<button type="submit" class="btn" {{bindAttr disabled="isProcessing"}}>Sign up!</button>
+	<button type="submit" {{bindAttr disabled="isProcessing"}}>Sign up!</button>
 </form>

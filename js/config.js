@@ -1,1 +1,1 @@
-App.Config = [{'route': 'index', 'children': [{'route': 'users', 'children': [{'route': 'users.user', 'title': 'Your Account'}], 'title': 'Please Sign In '}], 'title': 'Home Page'}];
+App.Config = [{'route': 'index', 'children': [{'route': 'users', 'children': [{'route': 'users.user', 'title': 'Your Account'}], 'title': 'Please Sign In '}, {'route': 'teachers', 'children': [{'route': 'teachers.view_teacher', 'title': 'Teacher'}], 'title': 'Browse Teachers '}], 'title': 'Home Page'}];

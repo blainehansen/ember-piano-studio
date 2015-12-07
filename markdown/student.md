@@ -1,0 +1,28 @@
+<div>
+{{#view App.ExpandableView}}
+	
+	{{#if view.expanded}}
+		<div {{action "toggle" target="view" on="click"}} >{{full_name}}. Show less...</div>
+
+		Balance: ${{balance}}
+
+		First Name: {{view App.EditableView innerBinding=first_name}}
+		Last Name: {{view App.EditableView innerBinding=last_name}}
+
+		This student's registered teachers:
+		{{#each teacher_registrations}}
+			{{teacher.user.full_name}} {{teacher.description}}
+		{{/each}}
+
+		All this students lessons:<br/>
+		{{#each lessons}}
+			{{date}}: {{price}}. With: {{teacher.full_name}}.
+			{{#if badnotice}}Gave short or no notice.{{/if}}<br/>
+		{{/each}}
+
+	{{else}}
+		<div {{action "toggle" target="view" on="click"}} >{{full_name}}. Show more...</div>
+	{{/if}}
+
+{{/view}}
+</div>

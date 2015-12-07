@@ -26,7 +26,9 @@ def munge(routes, parent_route = ''):
 			else:
 				router_string += (resource_template % (route, m_r))
 		else:
-			json_item = {'route':parent_route+'.'+route, 'title':title}
+			if parent_route:
+				parent_route += '.'
+			json_item = {'route':parent_route+route, 'title':title}
 			if path:
 				router_string += (route_path_template % (route, path))
 			else:
@@ -45,10 +47,18 @@ json_config = [{'route': 'index', 'title': 'Home Page', 'children': json_config 
 open('js/router.js', 'w').write(router_template % router_string)
 open('js/config.js', 'w').write('App.Config = ' + str(json_config) + ';')
 
-md = markdown.Markdown(extensions = ['attr_list'], output_format='html5')
+from markdown import blockprocessors as bp
+class NoProcessing(bp.BlockProcessor):
+    def test(self, parent, block):
+        return False   # never invoke this processor
+
+bp.CodeBlockProcessor = NoProcessing
+
+md = markdown.Markdown(extensions = ['attr_list', 'fenced_code'], output_format='html5')
 for filename in glob.iglob('markdown/*'):
-	tempf = string.lstrip(filename, 'markdown/')
+	tempf = string.lstrip(filename, 'markdown')
 	tempf = string.rstrip(tempf, '.md')
 	outputfile = 'templates/%s.hbs' % tempf
 	md.convertFile(input = filename, output = outputfile)
 subprocess.call('ember-precompile templates/*.hbs -f templates/templates.js', shell=True)
+

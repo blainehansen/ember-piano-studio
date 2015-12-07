@@ -15,156 +15,17 @@ App.LogUser = Ember.Object.extend({
 
 App.CurrentUser = App.LogUser.create()
 
-App.EditableView = Ember.View.extend({
-	templateName: 'editable',
-
-	editing: false,
-
-	click: function(event) {
-		if (!this.get('editing')) {
-			this.set('editing', true);
-		}
-	},
-
-	keyPress: function(event) {
-		if (this.get('editing') && event.which == 13) {
-			this.set('editing', false);
-		}
-	}
-});
-
-
-App.Person = DS.Model.extend({
-	first_name: DS.attr(),
-	last_name: DS.attr(),
-	full_name: function() {
-		return this.get('first_name') + ' ' + this.get('last_name');
-	}.property('first_name', 'last_name')
-});
-
-App.CouchNamespace = '_couch';
-App.UserAdapter =  EmberCouchDBKit.DocumentAdapter.extend({ namespace: App.CouchNamespace, db: '_users'});
-App.UserSerializer = EmberCouchDBKit.DocumentSerializer.extend();
-
-App.User = App.Person.extend({
-	name: DS.attr('string'), // Actually their primary email.
-	customer: DS.belongsTo('customer', {async: true }),
-	teacher: DS.belongsTo('teacher', {async: true }),
-	derived_key: DS.attr(),
-	iterations: DS.attr(),
-	password_scheme: DS.attr(),
-	salt: DS.attr(),
-	roles: DS.attr(),
-	type: DS.attr()
-});
-
-App.TeacherAdapter =  EmberCouchDBKit.DocumentAdapter.extend({ namespace: App.CouchNamespace, db: 'teachers'});
-App.TeacherSerializer = EmberCouchDBKit.DocumentSerializer.extend();
-
-App.Teacher = DS.Model.extend({
-	user: DS.belongsTo('user', {async: true}),
-	description: DS.attr('string')
-	// students: DS.hasMany('student', {async: true}),
-	// lessons: DS.hasMany('lesson', {async: true}),
-	// payments: DS.hasMany('payments', {async: true}),
-	// expenses: DS.hasMany('expenses', {async: true})
-});
-
-var reducefunc = function(previousValue, thing) {
-	return previousValue + thing.get('price');
-};
-
-App.CustomerAdapter =  EmberCouchDBKit.DocumentAdapter.extend({ namespace: App.CouchNamespace, db: 'customers'});
-App.CustomerSerializer = EmberCouchDBKit.DocumentSerializer.extend();
-
-App.Customer = DS.Model.extend({
-	user: DS.belongsTo('user', {async: true}),
-	description: DS.attr('string')
-	// students: DS.hasMany('student', {async: true}),
-	// payments: DS.hasMany('payments', {async: true}),
-	// balance: function() {
-	// 	var studentamount = this.get('students').reduce(0, function(previousValue, thing) {
-	// 		return previousValue + thing.get('balance');
-	// 	});
-	// 	var paymentamount = this.get('payments').reduce(0, reducefunc);
-	// 	return studentamount - paymentamount;
-	// }.property('students.@each.balance', 'payments.@each.price')
-});
-
-App.StudentAdapter =  EmberCouchDBKit.DocumentAdapter.extend({ namespace: App.CouchNamespace, db: 'students'});
-App.StudentSerializer = EmberCouchDBKit.DocumentSerializer.extend();
-
-App.Student = App.Person.extend({
-	lessons: DS.hasMany('lesson', {async: true}),
-	teachers: DS.hasMany('teacher', {async: true}),
-	expenses: DS.hasMany('expenses', {async: true}),
-	balance: function() {
-		var amount = this.get('lessons').reduce(0, reducefunc);
-		return this.get('expenses').reduce(amount, reducefunc);
-	}.property('lessons.@each.price', 'expenses.@each.price')
-});
-
-App.Transaction = DS.Model.extend({
-	date: DS.attr('date'),
-	price: DS.attr('number'),
-});
-
-App.PaymentAdapter =  EmberCouchDBKit.DocumentAdapter.extend({ namespace: App.CouchNamespace, db: 'payments'});
-App.PaymentSerializer = EmberCouchDBKit.DocumentSerializer.extend();
-
-App.Payment = App.Transaction.extend({
-	method: DS.attr('string'),
-	paying: DS.belongsTo('customer', {async: true}),
-	receiving: DS.belongsTo('teacher', {async: true})
-});
-
-App.LessonAdapter =  EmberCouchDBKit.DocumentAdapter.extend({ namespace: App.CouchNamespace, db: 'lessons'});
-App.LessonSerializer = EmberCouchDBKit.DocumentSerializer.extend();
-
-App.Lesson = App.Transaction.extend({
-	shortNoNotice: DS.attr('boolean'),
-	student: DS.belongsTo('student', {async: true}),
-	teacher: DS.belongsTo('teacher', {async: true})
-});
-
-App.ExpenseAdapter =  EmberCouchDBKit.DocumentAdapter.extend({ namespace: App.CouchNamespace, db: 'expenses'});
-App.ExpenseSerializer = EmberCouchDBKit.DocumentSerializer.extend();
-
-App.Expense = App.Transaction.extend({
-	item: DS.attr('string')
-});
-
-
-// Something about making urls pretty.
-// App.Router.reopen({
-// 	location: 'history'
-// });
-
 App.MenuController = Ember.ArrayController.create();
 
-App.ApplicationController = Ember.Controller.extend({
-
-	actions: {
-		logout: function() {
-			$.couch.logout({
-				success: function() {
-					App.CurrentUser.set('email', null);
-				}
-			})
-		}
-	},
-
-	currentPathDidChange: function() {
-		var path = this.get('currentPath');
-		App.set('currentPath', path);
-		var route = this.get('target').router.currentHandlerInfos.get('lastObject').handler.routeName;
-
-		var result = tree_search(App.Config, route);
-		document.title = result.title + " | The Blaine Hansen Piano Studio";
-		// Make a modification where routes without any children instead use the route of their parent.
-		App.MenuController.set('content', result.children);
-	}.observes('currentPath')
-});
+function checkSession() {
+	if (!App.CurrentUser.get('loggedIn')) {
+		$.couch.session({
+			success: function(data) {
+				if (data.userCtx.name) App.CurrentUser.set('email', data.userCtx.name);
+			}
+		});
+	}
+};
 
 function tree_search(array, query) {
 	if (!array[0]) return null;
@@ -180,68 +41,380 @@ function tree_search(array, query) {
 	}
 };
 
+App.ApplicationController = Ember.Controller.extend({
+
+	actions: {
+		logout: function() {
+			$.couch.logout({
+				success: function() {
+					App.CurrentUser.set('email', null);
+				}
+			})
+		}
+	},
+
+	currentPathDidChange: function() {
+		Ember.run.once(this, function() {
+			checkSession();
+
+			var path = this.get('currentPath');
+			App.set('currentPath', path);
+			var route = this.get('target').router.currentHandlerInfos.get('lastObject').handler.routeName;
+
+			var logged = App.CurrentUser.get('loggedIn');
+			if (logged && (path == 'users.index')) {
+				this.transitionToRoute('users.user');
+			}
+			else if (!logged && (path == 'users.user')) {
+				this.transitionToRoute('users.index');
+			}
+
+			var result = tree_search(App.Config, route);
+			document.title = result.title + " | The Blaine Hansen Piano Studio";
+			// Make a modification where routes without any children instead use the route of their parent.
+			App.MenuController.set('content', result.children);
+		});
+	}.observes('currentPath', 'App.CurrentUser.loggedIn')
+});
 
 App.UsersUserRoute = Ember.Route.extend({
+
 	model: function (params) {
-		return this.get('store').find('user', App.CurrentUser.get('id'));
+		var self = this;
+		if (!App.CurrentUser.get('loggedIn')) {
+			return new Ember.RSVP.Promise(function(resolve, reject) {
+				checkSession();
+				self.addObserver('App.CurrentUser.loggedIn', function() {
+					if (App.CurrentUser.get('loggedIn')) {
+						self.removeObserver('App.CurrentUser.loggedIn');
+						self.get('store').find('user', App.CurrentUser.get('id')).then(
+							function(record){ resolve(record); },
+							function(error){ reject(error); }
+						);
+					}
+				});
+			});
+		}
+		else return this.get('store').find('user', App.CurrentUser.get('id'));
 	}
 });
 
-App.UsersUserController = Ember.ObjectController.extend({
+App.ToggleAreaView = Ember.View.extend({
+	tagName: 'span',
+
+	templateName: 'toggle-area',
+
+	click: function(event) {
+		this.set('inner', !this.get('inner'));
+	}
+});
+
+App.ExpandableView = Ember.View.extend({
+
+	expanded: false,
+
 	actions: {
-		saveModel: function() {
-			this.get('model').save().then(
-				function( data, textStatus, jqXHR ) {
-					console.log('Saved successfully.');
-				},
-				function( jqXHR, textStatus, errorThrown ) {
-					console.log(jqXHR);
-					console.log(errorThrown);
-					console.log(textStatus);
+		toggle: function() {
+			this.set('expanded', !this.get('expanded'));
+		}
+	}
+});
+
+App.FocusInputComponent = Ember.TextField.extend({
+	becomeFocused: function() {
+		this.$().focus();
+	}.on('didInsertElement')
+});
+
+App.EditableView = Ember.View.extend({
+	templateName: 'editable',
+
+	editing: false,
+
+	click: function(event) {
+		if (!this.get('editing')) {
+			this.set('editing', true);
+			this.get('controller').send('childViewEditing', true);
+		}
+	},
+
+	keyPress: function(event) {
+		if (this.get('editing') && event.which == 13) {
+			this.set('editing', false);
+			this.get('controller').send('childViewEditing', false);
+		}
+	}
+});
+
+App.EnterFormView = Ember.View.extend({
+
+	action: '',
+
+	keyPress: function(event) {
+		if (event.which == 13) {
+			this.get('controller').send(this.get('action'));
+		}
+	}
+});
+
+function saveOn (target, attribute) {
+	return new Ember.RSVP.Promise(function(resolve, reject) {
+		if (target.get(attribute) || target.get(attribute) === undefined) {
+			target.save().then(function(record){ resolve(record); }, function(error){ reject(error); });
+		}
+		else {
+			target.addObserver(attribute, function () {
+				if (target.get(attribute)) {
+					target.removeObserver(attribute);
+					target.save().then(function(record){ resolve(record); }, function(error){ reject(error); });
 				}
-			);
-		},
-
-		teacherSignUp: function() {
-			var teacher = this.get('store').createRecord('teacher', {
-				description: 'Yo yo yo'
-			});
-			var model = this.get('model');
-			teacher.set('user', model);
-			teacher.save().then(function() {
-				model.set('teacher', teacher);
-			});
-			// model.save();
-		},
-
-		customerSignUp: function () {
-			var model = this.get('model');
-			var customer = this.get('store').createRecord('customer', {
-				description: 'Why hello sir',
-				user: model
-			});
-			customer.save().then(function() {
-				model.set('customer', customer);
-				model.save();
 			});
 		}
+	});
+};
 
+function safeSave(model) {
+	return new Ember.RSVP.Promise(function(resolve, reject) {
+		attributes = [];
+		model.eachRelationship(function(name, descriptor) {
+			if (descriptor.kind == 'belongsTo') {
+				attributes.push(name);
+			}
+		});
+
+		var checkAttributes = function() {
+			if (attributes.every(function(item) {return (model.get(item) === null) || !!model.get(item + '.isFulfilled');} )) {
+				Ember.run.once(this, function() {
+					model.save().then(function(record){
+						console.log('Saved successfully.');
+						resolve(record);
+					}, function(error) {
+						console.log('Error while saving.');
+						reject(error);
+					});
+				});
+			}
+		};
+		checkAttributes();
+		attributes.forEach(function(item) {
+			if ((model.get(item) !== null) && !model.get(item + '.isFulfilled')) {
+				model.addObserver(item + '.isFulfilled', function() {
+					if (model.get(item)) {
+						model.removeObserver(item);
+					}
+					checkAttributes();
+				});
+			}
+		});
+	});
+};
+
+function promiseAction(promise, action) {
+	if (typeof promise.save === 'function') {
+		action(promise);
+	}
+	else {
+		promise.then(function(resolvedPromise) {
+			action(resolvedPromise);
+		});
+	}
+};
+
+App.LessonEnterController = Ember.Controller.extend({
+
+	needs: 'teacher',
+
+	addLessons: [],
+
+	currentStudent: null, currentComments: '', currentBadNotice: false, currentStudentQuery: '',
+
+	// currentDaysAgo: 0, 
+
+	// currentDate: function() {
+	// 	var d = new Date();
+	// 	return d.setDate(d.getDate() - this.get('currentDaysAgo'));
+	// }.property('currentDaysAgo'),
+
+	// days: function() {
+	// 	if (this.get('currentDaysAgo') == 1) return 'day';
+	// 	else return 'days';
+	// }.property('currentDaysAgo'),
+
+	queryResults: [],
+
+	queryStudent: function() {
+		var query = this.get('currentStudentQuery');
+		if (query) {
+			var results = this.get('controllers.teacher.model.students').filter(function(item) {
+				return (item.get('last_name') == query) || (item.get('last_name') == query);
+			});
+			this.set('queryResults', results);
+		}
+	}.observes('currentStudentQuery'),
+
+	actions: {
+		pushLesson: function() {
+			this.get('addLessons').pushObject(this.get('store').createRecord('lesson', {
+				date: this.get('currentDate'),
+				teacher: this.get('controllers.teacher.model'),
+				student: this.get('currentStudent'),
+				price: this.get('currentPrice'),
+				comments: this.get('currentComments'),
+				badnotice: this.get('currentBadNotice'),
+			}));
+
+			this.setProperties({
+				currentStudent: null, currentComments: '', currentBadNotice: false, currentStudentQuery: ''
+			});
+		},
+
+		saveLessons: function() {
+			var teacher = this.get('controllers.teacher.model');
+			var lessons = this.get('controllers.teacher.model.lessons');
+			var students = this.get('controllers.teacher.model.students');
+			this.get('addLessons').forEach(function(item) {
+				saveOn(item, 'isFulfilled').then(function() {
+					lessons.pushObject(item);
+					var student = students.filter(function(potential) {
+						return potential.id == item.student.id;
+					});
+					student = student.get('student');
+					student.get('lessons').pushObject(item);
+					saveOn(teacher, 'isFulfilled');
+					saveOn(student, 'isFulfilled');
+				});
+			});
+			addLessons = [];
+			this.setProperties({
+				currentStudent: null, currentComments: '', currentBadNotice: false, currentStudentQuery: ''
+			});
+		},
+
+		selectResult: function(result) {
+			this.set('currentStudent', result);
+		},
+
+		removeItem: function(index) {
+			this.get('addLessons').removeAt(index);
+		}
+	}
+});
+
+function sfunc() { this.send('saveModel'); };
+
+App.EditableModelMixin = Ember.Mixin.create({
+
+	// childrenViewsSaved: function() {
+	// 	return !this.get('childrenViewsEditing') && !this.get('isDirty');
+	// }.property('childrenViewsEditing', 'isDirty'),
+
+	childrenViewsEditing: 0,
+
+	// childrenControllersSaved: function() {
+	// 	return !this.get('childrenControllersNotSaved');
+	// }.property('childrenControllersNotSaved'),
+
+	// childrenControllersNotSaved: 0,
+
+	// thisLevelSaved: function() {
+	// 	return this.get('childrenViewsSaved') && this.get('childrenControllersSaved');
+	// }.property('childrenViewsSaved', 'childrenControllersSaved'),
+
+	actions: {
+		childViewEditing: function(which) {
+			var num = which ? 1: -1;
+			this.set('childrenViewsEditing', this.get('childrenViewsEditing') + num);
+			if (!this.get('childrenViewsEditing') && this.get('isDirty')) {
+				console.log('Save block');
+				// if (!this.get('isTop')) this.get('parentView').get('controller').send('childControllerNotSaved', this.get('thisLevelSaved'));
+				Ember.run.debounce(this, sfunc, 5000);
+			}
+		},
+
+		saveModel: function() {
+			var model = this.get('model');
+			console.log(model);
+			promiseAction(model, safeSave);
+		}
+	}
+});
+
+App.TeacherController = Ember.ObjectController.extend(App.EditableModelMixin, {
+
+	currentType: '', currentPrice: '',
+
+	index_lesson_types: function() {
+		if (!this.get('lesson_types')) return;
+		return this.get('lesson_types').map(function(i, index) {
+			return {item: i, index: index};
+		});
+	}.property('lesson_types.@each'),
+
+	actions: {
+		removeType: function(index) {
+			this.get('lesson_types').removeAt(index);
+		},
+
+		pushType: function() {
+			if (!this.get('lesson_types')) this.set('lesson_types', []);
+			this.get('lesson_types').pushObject(Ember.Object.create({type: this.get('currentType'), price: this.get('currentPrice')}));
+			this.setProperties({currentType: '', currentPrice: ''});
+			$("#lesson_type_focus").focus()
+		}
+	}
+});
+
+App.StudentController = Ember.ObjectController.extend(App.EditableModelMixin);
+
+App.UsersUserController = Ember.ObjectController.extend(App.EditableModelMixin, {
+
+	actions: {
+		teacherSignUp: function() {
+			var user = this.get('model');
+			var teacher = this.get('store').createRecord('teacher', {
+				description: this.get('teacherDescriptionInput'),
+				user: user
+			});
+			user.set('teacher', teacher);
+			saveOn(teacher, 'user.isFulfilled').then(function() {
+				saveOn(user, 'isFulfilled');
+			});
+		},
+
+		studentSignUp: function() {
+			var user = this.get('model');
+			var students = user.get('students');
+			var student = this.get('store').createRecord('student', {
+				user: user
+			});
+			students.pushObject(student);
+			saveOn(student, 'user.isFulfilled').then(function() {
+				saveOn(user, 'isFulfilled');
+			});
+		},
+
+		studentCreate: function() {
+			var user = this.get('model');
+			var students = user.get('students');
+			var student = this.get('store').createRecord('student', {
+				first_name: this.get('studentFirstNameInput'),
+				last_name: this.get('studentLastNameInput'),
+				user: user
+			});
+			students.pushObject(student);
+			this.setProperties({
+				studentFirstNameInput: '',
+				studentLastNameInput: ''
+			});
+			$('#student_create_focus').focus();
+			saveOn(student, 'user.isFulfilled').then(function() {
+				saveOn(user, 'isFulfilled');
+			});
+		}
 	}
 });
 
 App.UsersIndexController = Ember.Controller.extend({
-
-	currentPathBinding: "App.currentPath",
-	loggedInBinding: "App.CurrentUser.loggedIn",
-
-	redirectFunction: function() {
-		if (this.loggedIn && (App.get('currentPath') == 'users.index')) {
-			this.transitionToRoute('users.user');
-		}
-		else if (!this.loggedIn && (App.get('currentPath') == 'users.user')) {
-			this.transitionToRoute('users.index');
-		}
-	}.observes('App.currentPath', 'loggedIn'),
 
 	actions: {
 		signin: function() {
@@ -281,6 +454,101 @@ App.UsersIndexController = Ember.Controller.extend({
 	}
 });
 
+App.TeachersIndexRoute = Ember.Route.extend({
+	model: function(params) {
+		return this.get('store').find('teacher');
+	}
+});
+
+App.TeachersViewTeacherRoute = Ember.Route.extend({
+	model: function(params) {
+		return this.get('store').find('teacher', params.teacher_id);
+	}
+});
+
+App.TeachersViewTeacherController = Ember.ObjectController.extend({
+	eligible_students: function() {
+		self = this;
+		this.store.find('user', App.CurrentUser.get('id')).then(function(user) {
+				var students = user.get('students').then(function(students) {
+					self.set('eligible_students', students);
+				});
+			}
+		);
+		return [];
+	}.property('App.CurrentUser.id'),
+
+	actions: {
+		register: function(student, type) {
+			var teacher_id = this.get('id');
+			var model = this.get('model');
+			var self = this;
+			student.get('teacher_registrations').then(function(teacher_registrations) {
+				console.log(teacher_registrations);
+				var result = teacher_registrations.findBy('teacher', teacher_id);
+				console.log(result);
+				if (result) {
+					result.set('active', true);	
+				}
+				else {
+					var registration = self.get('store').createRecord('registration', {
+						teacher: model,
+						student: student,
+						active: true,
+						type: type
+					});
+					console.log(registration);
+
+					saveOn(registration, 'isFulfilled').then(function(registration) {
+						console.log(registration);
+						model.get('student_registrations').then(function(array) {
+							array.pushObject(registration);
+							saveOn(model, 'isFulfilled');
+						});
+						student.get('teacher_registrations').then(function(array) {
+							array.pushObject(registration)
+							saveOn(student, 'isFulfilled');
+						});
+					});
+				}
+			});
+		},
+
+		unregister: function(student) {
+			console.log('unregister');
+		}
+	}
+});
+
+App.StudentRegistrationView = Ember.View.extend({
+	type: '', price: '',
+
+	registered: function() {
+		var teacher = this.get('controller').get('model');
+		var teacher_id = teacher.get('id');
+		var self = this;
+		this.get('inner').get('teacher_registrations').then(function(teacher_registrations) {
+			// console.log(teacher_registrations);
+			var result = teacher_registrations.findBy('teacher', teacher_id);
+			// console.log(result);
+			// console.log(result.get('active'));
+			if (result.get('active')) {
+				console.log('true');
+				self.set('registered', true);
+				var type = result.get('type');
+				var price = self.get('lesson_types').findBy('type', type);
+				self.set('type', type);
+				self.set('price', price);
+			}
+		});
+		return false;
+	}.property('inner.teacher_registrations.@each', 'model.lesson_types.@each')
+});
+
+// Something about making urls pretty.
+// App.Router.reopen({
+// 	location: 'history'
+// });
 
 // App.NeedsAuthMixin = Ember.Mixin.create({
 // 	beforeModel: function(transition) {
@@ -294,5 +562,3 @@ App.UsersIndexController = Ember.Controller.extend({
 // 		}
 // 	}
 // });
-
-// App.ArticlesRoute = Ember.Route.extend(App.NeedsAuthMixin);

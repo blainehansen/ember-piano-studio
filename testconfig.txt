@@ -1,3 +1,6 @@
 users, Please Sign In {
 	user, Your Account;
 };
+teachers, Browse Teachers {
+	view_teacher, :teacher_id, Teacher;	
+};

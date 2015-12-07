@@ -1,0 +1,11 @@
+{{#if view.expanded}}
+
+	<span {{action "toggle" target="view" on="click"}} >{{view.text}}   Show less...</span>
+
+	{{yield}}
+
+{{else}}
+
+	<span {{action "toggle" target="view" on="click"}} >{{view.text}}   Show more...</span>
+
+{{/if}}

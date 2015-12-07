@@ -1,0 +1,37 @@
+<div>
+You As a Teacher:<br/>
+
+Your Types of Lessons:<br/>
+{{#each index_lesson_types}}
+    {{item.type}}: ${{item.price}}
+    <span {{action "removeType" index}}>Remove.</span><br/>
+{{/each}}
+
+{{#view App.EnterFormView action="pushType"}}
+    {{input value=currentType placeholder="Lesson Name" id="lesson_type_focus"}} {{input value=currentPrice placeholder="Lesson Price"}}
+{{/view}}
+<button {{action "saveModel"}}>Save</button>
+
+{{view App.EditableView innerBinding=description}}<br/>
+
+Your registered students:<br/>
+{{#each student_registrations}}
+    {{student.full_name}}<br/>
+{{/each}}
+
+All lessons you've taught:<br/>
+{{#each lessons}}
+    {{date}}: {{price}}. With: {{student.full_name}}.
+    {{#if badnotice}}Gave short or no notice.{{/if}}<br/>
+{{/each}}
+
+All payments you've received:<br/>
+{{#each payments}}
+    {{date}}: {{price}}, {{method}}. From: {{paying.user.full_name}}<br/>
+{{/each}}
+
+Any expenses you've incurred:<br/>
+{{#each expenses}}
+    {{date}}: {{price}}. {{item}}<br/>
+{{/each}}
+</div>

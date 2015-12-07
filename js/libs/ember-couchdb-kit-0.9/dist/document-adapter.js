@@ -28,9 +28,6 @@
       return this._super(store, type, payload, id, requestType);
     },
     serialize: function(record, options) {
-      // console.log('serialize');
-      // console.log(record.get('user'));
-      // console.log(options);
       return this._super(record, options);
     },
     addHistoryId: function(hash) {
@@ -64,10 +61,6 @@
       return hash.id = hash["_id"] || hash["id"];
     },
     normalizeRelationships: function(type, hash) {
-      // console.log("normalizeRelationships");
-      // console.log(type);
-      // console.log(hash);
-
       var key, payloadKey;
       payloadKey = void 0;
       key = void 0;
@@ -83,39 +76,23 @@
       }
     },
     serializeBelongsTo: function(record, json, relationship) {
-      console.log("serializeBelongsTo");
       var attribute, belongsTo, key;
       attribute = relationship.options.attribute || "id";
-      console.log("attribute = %@".fmt(attribute));
       key = relationship.key;
-      console.log("key = %@".fmt(key));
       belongsTo = Ember.get(record, key);
-      console.log("belongsTo");
-      console.log(belongsTo);
       if (Ember.isNone(belongsTo)) {
         return;
       }
-      var content = Ember.get(belongsTo, 'content');
-      console.log("content");
-      console.log(content);
       var temp = Ember.get(belongsTo, attribute);
-      // console.log(temp);
-      // console.log("content = %@".fmt(content));
       json[key] = temp;
-      console.log("json = %@".fmt(json));
       if (relationship.options.polymorphic) {
         return json[key + "_type"] = belongsTo.constructor.typeKey;
       }
       else {
-        console.log("json = %@".fmt(json));
         return json;
       }
     },
     serializeHasMany: function(record, json, relationship) {
-      console.log("serializeHasMany");
-      console.log(record);
-      console.log(json);
-      console.log(relationship);
       var attribute, key, relationshipType;
       attribute = relationship.options.attribute || "id";
       key = relationship.key;
@@ -357,25 +334,26 @@
     },
     findAll: function(store, type) {
       var data, designDoc, normalizeResponce, typeString, typeViewName;
-      typeString = Ember.String.singularize(type.typeKey);
-      designDoc = this.get('designDoc') || typeString;
-      typeViewName = this.get('typeViewName');
+      // typeString = Ember.String.singularize(type.typeKey);
+      // designDoc = this.get('designDoc') || typeString;
+      // typeViewName = this.get('typeViewName');
       normalizeResponce = function(data) {
         var json,
           _this = this;
         json = {};
-        json[[Ember.String.pluralize(type.typeKey)]] = data.rows.getEach('doc').map(function(doc) {
+        json[Ember.String.pluralize(type.typeKey)] = data.rows.getEach('doc').map(function(doc) {
           return _this._normalizeRevision(doc);
         });
         return json;
       };
-      data = {
-        include_docs: true,
-        key: '"' + typeString + '"'
-      };
-      return this.ajax('_design/%@/_view/%@'.fmt(designDoc, typeViewName), 'GET', normalizeResponce, {
-        data: data
-      });
+      // data = {
+      //   include_docs: true,
+      //   key: '"' + typeString + '"'
+      // };
+      return this.ajax('_all_docs?include_docs=true', 'GET', normalizeResponce);
+      // return this.ajax('_design/%@/_view/%@'.fmt(designDoc, typeViewName), 'GET', normalizeResponce, {
+      //   data: data
+      // });
     },
     createRecord: function(store, type, record) {
       var json;
